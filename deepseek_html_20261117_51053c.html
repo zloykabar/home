@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Умный дом</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <h1>🏠 Умный дом</h1>
+            <div class="status" id="connectionStatus">
+                <span class="dot"></span>
+                <span>Проверка...</span>
+            </div>
+        </header>
+
+        <section class="settings-card">
+            <h2>Настройки подключения</h2>
+            <label>IP адрес устройства / хаба</label>
+            <input type="text" id="deviceIp" placeholder="192.168.1.100" value="192.168.1.100">
+            <label>Порт</label>
+            <input type="number" id="devicePort" value="80">
+            <label>API токен (если требуется)</label>
+            <input type="password" id="apiToken" placeholder="необязательно">
+            <button class="btn primary" onclick="saveSettings()">💾 Сохранить</button>
+        </section>
+
+        <section class="devices">
+            <h2>Устройства</h2>
+            <div id="deviceList"></div>
+        </section>
+
+        <section class="log">
+            <h2>Журнал</h2>
+            <div id="logBox"></div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+smart-home/
+├── index.html
+├── style.css
+├── app.js
+└── manifest.json

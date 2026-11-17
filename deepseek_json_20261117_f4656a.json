@@ -1,0 +1,16 @@
+{
+    "name": "Умный дом",
+    "short_name": "Умный дом",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#0f0f1e",
+    "theme_color": "#1a1a2e",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48dGV4dCB5PSIuOWVtIiBmb250LXNpemU9IjkwIj7wn4+gPC90ZXh0Pjwvc3ZnPg==",
+            "sizes": "192x192",
+            "type": "image/svg+xml"
+        }
+    ]
+}
