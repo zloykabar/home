@@ -1,36 +1,64 @@
 const express = require('express');
 const cors = require('cors');
-const { WizLight } = require('wiz-light-core');
+const dgram = require('dgram');
+const path = require('path');
 
 const app = express();
-app.use(cors()); // Разрешаем запросы с GitHub Pages
+app.use(cors());
 app.use(express.json());
 
-// Укажите IP вашей лампы (из шага 1)
-const BULB_IP = '192.168.1.155'; 
-const light = new WizLight(BULB_IP);
+// Раздаем статические файлы (сайт) прямо с этого же сервера
+app.use(express.static(__dirname));
 
-// Включение/выключение
-app.post('/api/state', async (req, res) => {
-    try {
-        const { state } = req.body; // true или false
-        await light.apply({ on: state });
-        res.json({ ok: true });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
+const WIZ_PORT = 38899;
+
+// Отправка UDP команды на лампу
+function sendWizUdp(ip, payload, callback) {
+    const client = dgram.createSocket('udp4');
+    const message = Buffer.from(JSON.stringify(payload));
+    
+    client.send(message, 0, message.length, WIZ_PORT, ip, (err) => {
+        client.close();
+        if (err) {
+            console.error('UDP error:', err);
+            callback(err);
+        } else {
+            callback(null, { ok: true });
+        }
+    });
+}
+
+// --- API ЭНДПОИНТЫ ---
+
+app.get('/ping', (req, res) => {
+    res.json({ status: 'ok', message: 'Мост WiZ работает' });
 });
 
-// Яркость (0-100)
-app.post('/api/brightness', async (req, res) => {
-    try {
-        const { brightness } = req.body;
-        await light.apply({ brightness: parseInt(brightness) });
+app.post('/setState', (req, res) => {
+    const { ip, state } = req.body;
+    const payload = { method: 'setPilot', params: { state: state === 1 } };
+    sendWizUdp(ip, payload, (err) => {
+        if (err) return res.status(500).json({ error: err.message });
         res.json({ ok: true });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
-    }
+    });
 });
 
-// Запуск на порту 8080
-app.listen(8080, () => console.log('Мост запущен: http://<IP-вашего-ПК>:8080'));
+app.post('/setBrightness', (req, res) => {
+    const { ip, brightness } = req.body;
+    const payload = { 
+        method: 'setPilot', 
+        params: { state: true, dimming: Math.max(1, Math.min(100, parseInt(brightness))) }
+    };
+    sendWizUdp(ip, payload, (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ ok: true });
+    });
+});
+
+// Запуск сервера
+const PORT = 8080;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Сервер запущен!`);
+    console.log(`👉 Откройте на телефоне: http://192.168.68.60:${PORT}`);
+    console.log(`   (Телефон должен быть в той же Wi-Fi сети)`);
+});
