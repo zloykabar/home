@@ -1,22 +1,22 @@
 // ============ КОНФИГУРАЦИЯ УСТРОЙСТВ ============
 const DEVICES = [
     {
-        id: '9aef59d4-516b-49c9-b3bc-9b256b1c8383:1450224512', // ID из вашего скриншота
-        ip: '192.168.1.155', // ВАЖНО: Замените на реальный IP лампы из приложения WiZ!
-        name: 'Гостиная group',
+        id: '9aef59d4-516b-49c9-b3bc-9b256b1c8383:1450224512',
+        ip: '192.168.68.55', // ВАШ IP ЛАМПЫ
+        name: 'Гостиная (WiZ)',
         icon: '💡'
     }
 ];
 
-// ============ НАСТРОЙКИ МОСТА ============
+// Настройки (по умолчанию ваш ПК)
 let settings = {
-    ip: localStorage.getItem('bridge_ip') || '192.168.1.50', // IP где запущен server.js
+    ip: localStorage.getItem('bridge_ip') || '192.168.68.60',
     port: localStorage.getItem('bridge_port') || '8080'
 };
 
-// ============ ЖУРНАЛ ============
 function log(msg, type = '') {
     const box = document.getElementById('logBox');
+    if(!box) return;
     const t = new Date().toLocaleTimeString('ru-RU');
     const div = document.createElement('div');
     div.className = 'log-line ' + type;
@@ -25,7 +25,6 @@ function log(msg, type = '') {
     while (box.children.length > 50) box.lastChild.remove();
 }
 
-// ============ НАСТРОЙКИ ============
 function loadSettings() {
     document.getElementById('bridgeIp').value = settings.ip;
     document.getElementById('bridgePort').value = settings.port;
@@ -40,7 +39,6 @@ function saveSettings() {
     checkConnection();
 }
 
-// ============ ЗАПРОСЫ К МОСТУ ============
 function getBridgeUrl() {
     return `http://${settings.ip}:${settings.port}`;
 }
@@ -48,12 +46,6 @@ function getBridgeUrl() {
 async function apiRequest(path, method = 'GET', body = null) {
     const url = getBridgeUrl() + path;
     
-    // Предупреждение о Mixed Content
-    if (location.protocol === 'https:' && url.startsWith('http://')) {
-        log('❌ GitHub Pages (HTTPS) не может обращаться к HTTP-мосту. Откройте сайт локально (сохраните файлы на телефон) или используйте HTTP.', 'err');
-        return { ok: false, error: 'mixed-content' };
-    }
-
     try {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 5000);
@@ -70,53 +62,34 @@ async function apiRequest(path, method = 'GET', body = null) {
         return { ok: true, data };
     } catch (e) {
         let reason = e.message;
-        if (e.name === 'AbortError') reason = 'таймаут (мост не отвечает)';
-        else if (e.message === 'Load failed' || e.message === 'Failed to fetch') reason = 'CORS или неверный IP моста';
+        if (e.name === 'AbortError') reason = 'таймаут (ПК не отвечает)';
+        else if (e.message === 'Load failed' || e.message === 'Failed to fetch') reason = 'CORS / неверный IP / ПК выключен';
         log(`${method} ${path} → ${reason}`, 'err');
         return { ok: false, error: reason };
     }
 }
 
-// ============ ПРОВЕРКА СВЯЗИ ============
 async function checkConnection() {
     const st = document.getElementById('connectionStatus');
+    if (!st) return;
     const dot = st.querySelector('.dot');
     const txt = st.querySelector('span:last-child');
+    
     dot.className = 'dot';
     txt.textContent = 'Проверка...';
 
     const res = await apiRequest('/ping');
     if (res.ok) {
         dot.className = 'dot online';
-        txt.textContent = 'Мост онлайн';
+        txt.textContent = 'Онлайн';
     } else {
         dot.className = 'dot offline';
-        txt.textContent = 'Мост офлайн';
+        txt.textContent = 'Офлайн';
     }
 }
 
-// ============ ДИАГНОСТИКА ============
-async function runDiagnostics() {
-    log('——— ДИАГНОСТИКА ———', 'ok');
-    log(`Страница: ${location.protocol}//${location.host}`, '');
-    log(`Мост: ${getBridgeUrl()}`, '');
-    
-    if (location.protocol === 'https:' && getBridgeUrl().startsWith('http://')) {
-        log('❌ Mixed Content: HTTPS страница не может обращаться к HTTP мосту.', 'err');
-        log('   Решение: откройте index.html локально (файл на телефоне) или запустите сайт через python -m http.server', '');
-    }
-    
-    log('Проверка моста...', '');
-    const res = await apiRequest('/ping');
-    if (res.ok) log('✅ Мост доступен. Теперь проверьте IP лампы в app.js (DEVICES[0].ip)', 'ok');
-    else log('❌ Мост недоступен. Проверьте: 1) Запущен ли server.js, 2) Верный ли IP в настройках, 3) Один ли Wi-Fi.', 'err');
-    log('——— КОНЕЦ ———', 'ok');
-}
-
-// ============ УПРАВЛЕНИЕ ============
 async function setDeviceState(deviceId, ip, state) {
     log(`Лампа ${ip} → ${state ? 'ON' : 'OFF'}`);
-    // Передаем IP лампы и состояние на мост
     return await apiRequest('/setState', 'POST', { ip, state: state ? 1 : 0 });
 }
 
@@ -125,9 +98,9 @@ async function setBrightness(deviceId, ip, value) {
     return await apiRequest('/setBrightness', 'POST', { ip, brightness: parseInt(value) });
 }
 
-// ============ РЕНДЕР ============
 function renderDevices() {
     const list = document.getElementById('deviceList');
+    if(!list) return;
     list.innerHTML = '';
     DEVICES.forEach(dev => {
         const card = document.createElement('div');
@@ -154,7 +127,6 @@ function renderDevices() {
     });
 }
 
-// ============ ОБРАБОТЧИКИ ============
 async function onDeviceOn(id, ip) {
     const res = await setDeviceState(id, ip, true);
     if (res.ok) updateStateUI(id, true);
@@ -174,7 +146,6 @@ function updateStateUI(id, on) {
     }
 }
 
-// ============ СТАРТ ============
 window.addEventListener('DOMContentLoaded', () => {
     loadSettings();
     renderDevices();
